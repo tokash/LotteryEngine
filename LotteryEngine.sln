@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LotteryEngine", "LotteryEngine\LotteryEngine.csproj", "{A565D58F-A5BC-45B2-B301-E11C0A01BC5C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A565D58F-A5BC-45B2-B301-E11C0A01BC5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A565D58F-A5BC-45B2-B301-E11C0A01BC5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A565D58F-A5BC-45B2-B301-E11C0A01BC5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A565D58F-A5BC-45B2-B301-E11C0A01BC5C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
