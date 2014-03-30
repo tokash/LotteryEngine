@@ -43,6 +43,7 @@
   <ItemGroup>
     <Compile Include="Combination.cs" />
     <Compile Include="iNumTablesToConsider.cs" />
+    <Compile Include="ListExtensionMethods.cs" />
     <Compile Include="LotteryTable.cs" />
     <Compile Include="Multimap.cs" />
     <Compile Include="MyLotteryEngine.cs" />

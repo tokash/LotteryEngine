@@ -120,4 +120,41 @@ namespace LotteryEngine
             //    obj.Price.GetHashCode();
         }
     }
+
+    class DistinctRanksComparer : IEqualityComparer<int[]>
+    {
+
+        public bool Equals(int[] x, int[] y)
+        {
+            bool isEqual = true;
+
+            //Console.WriteLine(string.Format("{0} - {1}", x.Length, y.Length));
+            if (x.Length == y.Length)
+            {
+                for (int i = 0; i < x.Length; i++)
+                {
+                    if (x[i] != y[i])
+                    {
+                        isEqual = false;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                isEqual = false;
+            }
+
+            return isEqual;
+        }
+
+        public int GetHashCode(int[] obj)
+        {
+            return base.GetHashCode();
+            //return obj.Id.GetHashCode() ^
+            //    obj.Name.GetHashCode() ^
+            //    obj.Code.GetHashCode() ^
+            //    obj.Price.GetHashCode();
+        }
+    }
 }

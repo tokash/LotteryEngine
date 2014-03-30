@@ -1,0 +1,6 @@
+length = 26.39
+width = 9.52
+
+Original
+length = 25.12
+width = 8.25

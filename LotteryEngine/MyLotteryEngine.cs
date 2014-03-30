@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Collections;
 using System.Globalization;
 using System.IO;
@@ -1001,9 +1002,12 @@ namespace LotteryEngine
 
                                 if (table.Distinct().Count() == 6)
                                 {
-                                    tables.Add( new ChosenLotteryTable(){ Numbers = table.OrderBy(x => x).ToArray<int>(),
+                                    table = table.OrderBy(x => x).ToArray<int>();
+
+                                    tables.Add( new ChosenLotteryTable(){ Numbers = table,
                                                                           Ranks = new int[]{num1.Rank, num2.Rank, num3.Rank, num4.Rank, num5.Rank }.OrderBy(x => x).ToArray(),
-                                                                          Leading = iTable[0]});
+                                                                          Leading = table[0]
+                                    });
                                 }
                             }
                         }
@@ -1164,7 +1168,7 @@ namespace LotteryEngine
             }
         }
 
-        public void GetAllLotteryTablesCombinations3(string iGeneratedTablesFilename, bool iWriteGeneratedTables, int iWantedCombinations, Dictionary<int, int> iWantedDispersion, bool iWriteWinningTablesDataToFile, string iWinningTablesFilename, string iChosenTablesFilename)
+        public void GetAllLotteryTablesCombinations3(string iGeneratedTablesFilename, bool iWriteGeneratedTables, int iWantedCombinations, Dictionary<int, int> iWantedDispersion, bool iWriteWinningTablesDataToFile, string iWinningTablesFilename, bool iWriteAllChosenTablesDataToFile, string iAllChosenTablesFilename, string iChosenTablesFilename)
         {
             List<ChosenLotteryTable> combinations = new List<ChosenLotteryTable>();
             List<ChosenLotteryTable> winningCombinations = new List<ChosenLotteryTable>();
@@ -1190,6 +1194,8 @@ namespace LotteryEngine
                 {
                     PrintWinningTableDataToFile(currTable, iWinningTablesFilename);
                 }
+
+                //Generates all tables that adhere to the ranking system
                 combinations.AddRange(GetCombinationsAccordingToRanks2(winningResult, RankedNumbers).Distinct(new DistinctChosenLotteryTableComparer()));
             }
 
@@ -1250,11 +1256,219 @@ namespace LotteryEngine
                 }
             }
 
+            if (iWriteAllChosenTablesDataToFile)
+            {
+                foreach (ChosenLotteryTable result in chosenCombinations)
+                {
+                    using (StreamWriter writer = new StreamWriter(iAllChosenTablesFilename, true))
+                    {
+                        string strTable = string.Format("{0};{1};{2};{3};{4};{5}", result.Numbers[0], result.Numbers[1],
+                                                                                result.Numbers[2], result.Numbers[3],
+                                                                                result.Numbers[4], result.Numbers[5]);
+                        string line = string.Format("{0}, ,{1}, ,{2}, ,{3},{4},{5},{6},{7}, ,{8}", result.Leading, strTable, result.StrongNumber, result.Ranks[0],
+                                                                                                             result.Ranks[1],
+                                                                                                             result.Ranks[2],
+                                                                                                             result.Ranks[3],
+                                                                                                             result.Ranks[4],
+                                                                                                             result.HitCount);
+
+                        writer.WriteLine(line);
+                    }
+                }
+            }
+
+            List<ChosenLotteryTable> chosenForSending = null;
+            List<ChosenLotteryTable> profittables = new System.Collections.Generic.List<ChosenLotteryTable>();
+            double wins = 0, losses = 0, profit = 0;
+            do
+            {
+                
+
+                //Choose from chosen combinations according to wanted dispersion
+                chosenForSending = new List<ChosenLotteryTable>();
+                foreach (KeyValuePair<int, int> pair in iWantedDispersion)
+                {
+                    //chosenForSending.AddRange(ChooseCombinationsForSpecificNumber(pair.Key, (int)((double)pair.Value / 100 * iWantedCombinations), winningCombinations.Where(x => x.Leading == pair.Key).ToList(), chosenCombinations.Where(x => x.Leading == pair.Key).ToList()));
+                    chosenForSending.AddRange(ChooseCombinationsForSpecificNumber2(pair.Key, (int)((double)pair.Value / 100 * iWantedCombinations), winningCombinations/*.Where(x => x.Leading == pair.Key).ToList()*/, chosenCombinations.Where(x => x.Leading == pair.Key).ToList()));
+                }
+
+                wins = 0;
+                losses = 0;
+                
+
+                profit = CalcWinningsForTables(chosenForSending.Take(5).ToList(), _LotteryHistoricResults.Take(winningResults.Count).ToList(), new int[] { 0, 0, 0, 10, 33, 46, 117, 497, 3846, 500000, 0 }, 2.9, ref wins, ref losses);
+
+                if (profit > 100 && wins >= 85)
+                {
+                    //profittables.Clear();
+                    profittables.AddRange(chosenForSending);
+                    foreach (ChosenLotteryTable item in chosenForSending)
+                    {
+                        chosenCombinations.Remove(item);
+                    }
+                }
+
+            } while (profittables.Count < 28 /*iWantedCombinations*/);
+
+            //Write ChosenForSending to file
+            foreach (ChosenLotteryTable result in profittables)
+            {
+                using (StreamWriter writer = new StreamWriter(iChosenTablesFilename, true))
+                {
+                    string strTable = string.Format("{0};{1};{2};{3};{4};{5}", result.Numbers[0], result.Numbers[1],
+                                                                            result.Numbers[2], result.Numbers[3],
+                                                                            result.Numbers[4], result.Numbers[5]);
+                    string line = string.Format("{0}, ,{1}, ,{2}, ,{3},{4},{5},{6},{7}, ,{8}", result.Leading, strTable, result.StrongNumber, result.Ranks[0],
+                                                                                                         result.Ranks[1],
+                                                                                                         result.Ranks[2],
+                                                                                                         result.Ranks[3],
+                                                                                                         result.Ranks[4],
+                                                                                                         result.HitCount);
+
+                    writer.WriteLine(line);
+                }
+            }
+        }
+
+        private ChosenLotteryTable BuildTable(int iPickedStartingNumber)
+        {
+            ChosenLotteryTable table = new ChosenLotteryTable();
+
+            //Choosing the most common number for the picked number
+            int second = _NumbersCommoness[iPickedStartingNumber - 1][0];
+
+            //Choose 2 numbers - next common for picked and most common for most common
+            int third = _NumbersCommoness[iPickedStartingNumber - 1][1];
+            int forth = _NumbersCommoness[second - 1][0];
+
+            //Choose 2 numbers - most common of third and forth
+            int fifth = _NumbersCommoness[third - 1][0];
+            int sixth = _NumbersCommoness[forth - 1][0];
+
+            table.Numbers[0] = iPickedStartingNumber;
+            table.Numbers[1] = second;
+            table.Numbers[2] = third;
+            table.Numbers[3] = forth;
+            table.Numbers[4] = fifth;
+            table.Numbers[5] = sixth;
+
+            return table;
+        }
+
+        public void GetAllLotteryTablesCombinations4(string iGeneratedTablesFilename, bool iWriteGeneratedTables, int iWantedCombinations, Dictionary<int, int> iWantedDispersion, bool iWriteWinningTablesDataToFile, string iWinningTablesFilename, bool iWriteAllChosenTablesDataToFile, string iAllChosenTablesFilename, string iChosenTablesFilename)
+        {
+            List<ChosenLotteryTable> combinations = new List<ChosenLotteryTable>();
+            List<ChosenLotteryTable> winningCombinations = new List<ChosenLotteryTable>();
+
+            //1.Create the commoness file
+            Find2CombinationsInside6Combinations(GetOfficialCombinationsByDate(new DateTime(2009, 2, 28)), 38, "2CombinationsOf6Hits.csv", false);
+
+            //2.Read the commoness file and set the ranks
+            ReadCommonessFile("2CombinationsOf6Hits.csv");
+            //lotteryEngine.PrintCommonessListToFile(lotteryEngine.RankedNumbers, "CurrentCommoness.csv");
+
+            //3.Create winning tables list
+            List<int[]> winningResults = GetOfficialCombinationsByDate(new DateTime(2009, 2, 28));
+            foreach (int[] winningResult in winningResults)
+            {
+                ChosenLotteryTable currTable = GetWinningTableData(new DateTime(2009, 2, 28), winningResult, RankedNumbers);
+                winningCombinations.Add(currTable);
+
+                LotteryWinningResult tmp = GetOfficialWinningResult(winningResult, GetNumberOfOfficialCombinationsSinceDate(new DateTime(2009, 2, 28)));
+                currTable.HitCount = tmp._HitCount;
+
+                if (iWriteWinningTablesDataToFile)
+                {
+                    PrintWinningTableDataToFile(currTable, iWinningTablesFilename);
+                }
+
+                //Generates all tables that adhere to the ranking system
+                combinations.AddRange(GetCombinationsAccordingToRanks2(winningResult, RankedNumbers).Distinct(new DistinctChosenLotteryTableComparer()));
+            }
+
+            List<ChosenLotteryTable> chosenTables = new List<ChosenLotteryTable>();
+            foreach (ChosenLotteryTable winningTable in winningCombinations)
+            {
+                for (int j = 0; j < combinations.Count; j++)
+                {
+                    if (CompareIntArray(winningTable.Ranks, combinations[j].Ranks))
+                    {
+                        List<int> numbersHit = new List<int>();
+                        int hitCount = GetHitCountForTable(combinations[j].Numbers, winningCombinations.Count, ref numbersHit);
+                        combinations[j].HitCount = hitCount;
+                        chosenTables.Add(combinations[j]);
+
+                        if (iWriteGeneratedTables)
+                        {
+                            using (StreamWriter writer = new StreamWriter(iGeneratedTablesFilename, true))
+                            {
+                                string strTable = string.Format("{0};{1};{2};{3};{4};{5}", combinations[j].Numbers[0], combinations[j].Numbers[1],
+                                                                                        combinations[j].Numbers[2], combinations[j].Numbers[3],
+                                                                                        combinations[j].Numbers[4], combinations[j].Numbers[5]);
+                                string line = string.Format("{0}, ,{1}, ,{2}, ,{3},{4},{5},{6},{7}, ,{8}", combinations[j].Leading, strTable, combinations[j].StrongNumber, combinations[j].Ranks[0],
+                                                                                                                     combinations[j].Ranks[1],
+                                                                                                                     combinations[j].Ranks[2],
+                                                                                                                     combinations[j].Ranks[3],
+                                                                                                                     combinations[j].Ranks[4],
+                                                                                                                     combinations[j].HitCount);
+
+                                writer.WriteLine(line);
+                            }
+                        }
+                    }
+                }
+            }
+
+            //Now that we have the hit count for the winning combinations, we need to go over all found combinations and see if they match
+            //the winning combinations in terms of ranks and hit count, if so add to the list of chosen combinations
+            List<ChosenLotteryTable> chosenCombinations = new List<ChosenLotteryTable>();
+            int currStrongNumber = 1;
+            foreach (ChosenLotteryTable table in combinations)
+            {
+                for (int i = 0; i < winningCombinations.Count; i++)
+                {
+                    if (table.HitCount == _LotteryHistoricResults[i]._HitCount &&
+                        CompareIntArray(table.Ranks, winningCombinations[i].Ranks) &&
+                        !CompareIntArray(table.Numbers, winningCombinations[i].Numbers)/*match ranks && hit count*/)
+                    {
+                        table.StrongNumber = currStrongNumber;
+                        chosenCombinations.Add(table);
+
+                        currStrongNumber++;
+                        if (currStrongNumber == 8)
+                        {
+                            currStrongNumber = 1;
+                        }
+                    }
+                }
+            }
+
+            if (iWriteAllChosenTablesDataToFile)
+            {
+                foreach (ChosenLotteryTable result in chosenCombinations)
+                {
+                    using (StreamWriter writer = new StreamWriter(iAllChosenTablesFilename, true))
+                    {
+                        string strTable = string.Format("{0};{1};{2};{3};{4};{5}", result.Numbers[0], result.Numbers[1],
+                                                                                result.Numbers[2], result.Numbers[3],
+                                                                                result.Numbers[4], result.Numbers[5]);
+                        string line = string.Format("{0}, ,{1}, ,{2}, ,{3},{4},{5},{6},{7}, ,{8}", result.Leading, strTable, result.StrongNumber, result.Ranks[0],
+                                                                                                             result.Ranks[1],
+                                                                                                             result.Ranks[2],
+                                                                                                             result.Ranks[3],
+                                                                                                             result.Ranks[4],
+                                                                                                             result.HitCount);
+
+                        writer.WriteLine(line);
+                    }
+                }
+            }
+
             //Choose from chosen combinations according to wanted dispersion
             List<ChosenLotteryTable> chosenForSending = new List<ChosenLotteryTable>();
             foreach (KeyValuePair<int, int> pair in iWantedDispersion)
             {
-                chosenForSending.AddRange(ChooseCombinationsForSpecificNumber(pair.Key, (int)((double)pair.Value / 100 * iWantedCombinations), winningCombinations.Where(x => x.Leading == pair.Key).ToList(), chosenCombinations));
+                chosenForSending.AddRange(ChooseCombinationsForSpecificNumber2(pair.Key, (int)((double)pair.Value / 100 * iWantedCombinations), winningCombinations.Where(x => x.Leading == pair.Key).ToList(), chosenCombinations.Where(x => x.Leading == pair.Key).ToList()));
             }
 
             //Write ChosenForSending to file
@@ -1355,33 +1569,160 @@ namespace LotteryEngine
             List<ChosenLotteryTable> combinations = new List<ChosenLotteryTable>();
             int counter = 0;
 
-            IEnumerable<IGrouping<int, ChosenLotteryTable>> listGroupByHitCount = iWinningCombinations.GroupBy(x => x.HitCount);
-            IEnumerable<IGrouping<int[], ChosenLotteryTable>> listGroupByRanks = iWinningCombinations.GroupBy(x => x.Ranks);
-
+            IEnumerable<IGrouping<int, ChosenLotteryTable>> listGroupByHitCountWinning = iWinningCombinations.GroupBy(x => x.HitCount);
+            IEnumerable<IGrouping<int, ChosenLotteryTable>> listGroupByHitCountGenerated = iCombinationsToChooseFrom.GroupBy(x => x.HitCount);
+            
+            //For winning tables
             //Ordering the groups grouped by hit count by value, so groups with the most common hit count will appear higher in the list
-            List<KeyValuePair<int, int>> listOrderByHitCountValue = new List<KeyValuePair<int, int>>();
-            foreach (IGrouping<int, ChosenLotteryTable> item in listGroupByHitCount)
+            List<KeyValuePair<int, int>> listOrderByHitCountValueWinning = new List<KeyValuePair<int, int>>();
+            foreach (IGrouping<int, ChosenLotteryTable> item in listGroupByHitCountWinning)
             {
-                listOrderByHitCountValue.Add(new KeyValuePair<int,int>(item.Key, item.Count()));
+                listOrderByHitCountValueWinning.Add(new KeyValuePair<int,int>(item.Key, item.Count()));
             }
-            listOrderByHitCountValue = listOrderByHitCountValue.OrderBy(x => x.Value).Reverse().ToList();
+            listOrderByHitCountValueWinning = listOrderByHitCountValueWinning.OrderBy(x => x.Value).Reverse().ToList();
 
-            //Need to choose from both hit count and ranks
-
-            for (int i = 0; i < listOrderByHitCountValue.Count; i++)
+            //For generated tables
+            //Ordering the groups grouped by hit count by value, so groups with the most common hit count will appear higher in the list
+            List<KeyValuePair<int, int>> listOrderByHitCountValueGenerated = new List<KeyValuePair<int, int>>();
+            foreach (IGrouping<int, ChosenLotteryTable> item in listGroupByHitCountGenerated)
             {
-                var res = iCombinationsToChooseFrom.Where(x => x.HitCount == listOrderByHitCountValue[i].Key && x.Leading == iLeadingNumber);
+                listOrderByHitCountValueGenerated.Add(new KeyValuePair<int, int>(item.Key, item.Count()));
+            }
+            listOrderByHitCountValueGenerated = listOrderByHitCountValueGenerated.OrderBy(x => x.Value).Reverse().ToList();
 
-                if (counter + res.Count() <= iNumCombinations)
+
+            //Grouping generated combinations by ranks
+            List<ChosenLotteryTable> listOrderByRanksGenerated = iCombinationsToChooseFrom.Where(x => x.HitCount == listOrderByHitCountValueWinning[0].Key).ToList();//.GroupBy(x => x.Ranks);
+            Dictionary<int[], List<ChosenLotteryTable>> dictGroupByRanksGenerated = new Dictionary<int[],List<ChosenLotteryTable>>();
+            for (int j = 0; j < listOrderByRanksGenerated.Count; j++)
+            {
+                if (dictGroupByRanksGenerated.Keys.Contains(listOrderByRanksGenerated[j].Ranks, new DistinctRanksComparer()))
                 {
-                    combinations.AddRange((List<ChosenLotteryTable>)res.ToList());
-                    counter += res.Count();
+                    dictGroupByRanksGenerated.Single(x => x.Key[0] == listOrderByRanksGenerated[j].Ranks[0] &&
+                                                    x.Key[1] == listOrderByRanksGenerated[j].Ranks[1] &&
+                                                    x.Key[2] == listOrderByRanksGenerated[j].Ranks[2] &&
+                                                    x.Key[3] == listOrderByRanksGenerated[j].Ranks[3] &&
+                                                    x.Key[4] == listOrderByRanksGenerated[j].Ranks[4]).Value.Add(listOrderByRanksGenerated[j]); /*listOrderByRanks[j].Ranks]*/
                 }
                 else
                 {
-                    combinations.AddRange((List<ChosenLotteryTable>)res.Take(iNumCombinations - counter).ToList());
+                    dictGroupByRanksGenerated.Add(listOrderByRanksGenerated[j].Ranks, new List<ChosenLotteryTable>());
+                    dictGroupByRanksGenerated[listOrderByRanksGenerated[j].Ranks].Add(listOrderByRanksGenerated[j]);
+                }
+            }
+
+            dictGroupByRanksGenerated = dictGroupByRanksGenerated.OrderBy(x => x.Value.Count).Reverse().ToDictionary(x => x.Key, x=> x.Value);
+            bool counterLimitReached = false;
+
+            //Now go over the grouped by ranks list and take the tables with the hit count that appears the most from the ranks that appear the most
+            foreach (KeyValuePair<int, int> hitCount in listOrderByHitCountValueWinning)
+            {
+                foreach (KeyValuePair<int[], List<ChosenLotteryTable>> tables in dictGroupByRanksGenerated)
+                {
+                    for (int i = 0; i < 2 /*tables.Value.Count*/ && i < listOrderByHitCountValueGenerated.Count; i++)
+                    {
+                        try
+                        {
+                            var res = listGroupByHitCountGenerated.First(x => x.Key == listOrderByHitCountValueWinning[i].Key);
+                            int resCount = res.Count();
+                            //var res = tables.Value.Where(x => x.HitCount == listOrderByHitCountValueWinning[i].Key && x.HitCount == listOrderByHitCountValueGenerated[i].Key);
+                            if (combinations.Count <= iNumCombinations)
+                            {
+                                double ratio = (double)iNumCombinations * resCount / iCombinationsToChooseFrom.Count;
+                                combinations.AddRange((List<ChosenLotteryTable>)res.Take((int)ratio).ToList());
+                            }
+                            else
+                            {
+                                //combinations.AddRange((List<ChosenLotteryTable>)res.Take(iNumCombinations - counter).ToList());
+                                counterLimitReached = true;
+                                break;
+                            }
+                        }
+                        catch (Exception)
+                        {
+
+                        }
+                    }
+                    if (counterLimitReached)
+                    {
+                        break;
+                    }
+                }
+                if (counterLimitReached)
+                {
                     break;
                 }
+            }
+
+            //Need to choose from both hit count and ranks
+            //for (int i = 0; i < listOrderByHitCountValue.Count; i++)
+            //{
+            //    var res = iCombinationsToChooseFrom.Where(x => x.HitCount == listOrderByHitCountValue[i].Key && x.Leading == iLeadingNumber);
+
+            //    if (counter + res.Count() <= iNumCombinations)
+            //    {
+            //        combinations.AddRange((List<ChosenLotteryTable>)res.ToList());
+            //        counter += res.Count();
+            //    }
+            //    else
+            //    {
+            //        combinations.AddRange((List<ChosenLotteryTable>)res.Take(iNumCombinations - counter).ToList());
+            //        break;
+            //    }
+            //}
+
+            return combinations;
+        }
+
+        private List<ChosenLotteryTable> ChooseCombinationsForSpecificNumber2(int iLeadingNumber, int iNumCombinations, List<ChosenLotteryTable> iWinningCombinations, List<ChosenLotteryTable> iCombinationsToChooseFrom)
+        {
+            List<ChosenLotteryTable> combinations = new List<ChosenLotteryTable>();
+            int counter = 0;
+            List<ChosenLotteryTable> mostOccurencestHitCount = new System.Collections.Generic.List<ChosenLotteryTable>();
+
+            
+            //Get all generated combinations that has the most common hit count value
+            //First get the spread
+            IEnumerable<IGrouping<int, ChosenLotteryTable>> listGroupByHitCountGenerated = iCombinationsToChooseFrom.GroupBy(x => x.HitCount);
+            List<KeyValuePair<int, int>> listOrderByHitCountValueGenerated = new List<KeyValuePair<int, int>>();
+            foreach (IGrouping<int, ChosenLotteryTable> item in listGroupByHitCountGenerated)
+            {
+                listOrderByHitCountValueGenerated.Add(new KeyValuePair<int, int>(item.Key, item.Count()));
+            }
+            listOrderByHitCountValueGenerated = listOrderByHitCountValueGenerated.OrderBy(x => x.Value).Reverse().ToList();
+
+            //Then, Group generated combinations by ranks according to most common hit count value
+            List<ChosenLotteryTable> listOrderByRanksGenerated = iCombinationsToChooseFrom.Where(x => x.HitCount == listOrderByHitCountValueGenerated[0].Key).ToList();
+
+            //shuffle the list to get even spread of ranks
+            //listOrderByRanksGenerated.Shuffle();
+            iCombinationsToChooseFrom.Shuffle();
+
+            //Now, check if a combination won in at least 3 of the last 6 raffles, if so, add to combinations
+            //for (int i = 0; i < listOrderByRanksGenerated.Count && combinations.Count < iNumCombinations; i++)
+            //{
+            //    for (int j = 0; j < 6; j++)
+            //    {
+            //        if (IsHit(listOrderByRanksGenerated[i], iWinningCombinations[j]))
+            //        {
+            //            counter++;
+            //        }
+            //    }
+
+            //    if (counter >=2)
+            //    {
+            //        combinations.Add(listOrderByRanksGenerated[i]);
+            //        counter = 0;
+            //    }
+            //}
+
+            if (iCombinationsToChooseFrom.Count < iNumCombinations)
+            {
+                combinations.AddRange(iCombinationsToChooseFrom.Take(iCombinationsToChooseFrom.Count).ToList());
+            }
+            else
+            {
+                combinations.AddRange(iCombinationsToChooseFrom.Take(iNumCombinations).ToList());
             }
 
             return combinations;
@@ -1509,6 +1850,95 @@ namespace LotteryEngine
             }
 
             return hitCount;
+        }
+
+        public int[] CheckHitCountForChosenCombination(List<ChosenLotteryTable> iChosenCombinations, LotteryWinningResult iWinningResult)
+        {
+            int[] hitCount = new int[11]; //0 1 2 3 4  5 6  7 8  9 10
+            //      3 3+ 4 4+ 5 5+ 6 6+
+
+            if (iChosenCombinations != null)
+            {
+                foreach (ChosenLotteryTable chosenCombination in iChosenCombinations)
+                {
+                    int hitCounter = Compare6NumbersTables(chosenCombination.Numbers, iWinningResult._Numbers);
+
+                    if (hitCounter > 2)
+                    {
+                        if (chosenCombination.StrongNumber == iWinningResult._StrongNumber)
+                        {
+                            switch (hitCounter)
+                            {
+                                case 3:
+                                    hitCount[hitCounter + 1]++;
+                                    break;
+                                case 4:
+                                    hitCount[hitCounter + 2]++;
+                                    break;
+                                case 5:
+                                    hitCount[hitCounter + 3]++;
+                                    break;
+                                case 6:
+                                    hitCount[hitCounter + 4]++;
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            switch (hitCounter)
+                            {
+                                case 3:
+                                    hitCount[hitCounter]++;
+                                    break;
+                                case 4:
+                                    hitCount[hitCounter + 1]++;
+                                    break;
+                                case 5:
+                                    hitCount[hitCounter + 2]++;
+                                    break;
+                                case 6:
+                                    hitCount[hitCounter + 3]++;
+                                    break;
+                            }
+                        }
+
+                    }
+                }
+            }
+
+            return hitCount;
+        }
+
+        private bool IsHit(ChosenLotteryTable iTable, ChosenLotteryTable iWinningResult)
+        {
+            int hitCounter = Compare6NumbersTables(iTable.Numbers, iWinningResult.Numbers);
+
+            return hitCounter > 2 ? true : false;
+        }
+
+        public double CalcWinningsForTables(List<ChosenLotteryTable> iChosenTables, List<LotteryWinningResult> iWinningResults, int[] iPrizes, double iTableCost, ref double oWins, ref double oLosses)
+        {
+            double Profit = 0;
+            //double Invested = iTableCost * iChosenTables.Count * iWinningResults.Count;
+
+            foreach (LotteryWinningResult winningResult in iWinningResults)
+            {
+                int[] hitCounts = CheckHitCountForChosenCombination(iChosenTables, winningResult);
+
+                double currProfit = hitCounts[3] * iPrizes[3] + hitCounts[4] * iPrizes[4] + hitCounts[5] * iPrizes[5] + hitCounts[6] * iPrizes[6] + hitCounts[7] * iPrizes[7] + hitCounts[8] * iPrizes[8] + hitCounts[9] * iPrizes[9] + hitCounts[10] * iPrizes[10] - ((double)iTableCost * iChosenTables.Count);
+                Profit += currProfit;// hitCounts[3] * iPrizes[3] + hitCounts[4] * iPrizes[4] + hitCounts[5] * iPrizes[5] + hitCounts[6] * iPrizes[6] + hitCounts[7] * iPrizes[7] + hitCounts[8] * iPrizes[8] + hitCounts[9] * iPrizes[9] + hitCounts[10] * iPrizes[10];
+
+                if (currProfit > 0)
+                {
+                    oWins++;
+                }
+                else
+                {
+                    oLosses++;
+                }
+            }
+
+            return Profit;// -Invested;
         }
 
         /// <summary>
