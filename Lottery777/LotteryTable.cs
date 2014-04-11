@@ -6,27 +6,27 @@ using System.Threading.Tasks;
 
 namespace LotteryEngine
 {
-    public class LotteryTable
+    public class Lottery777Table
     {
-        public int[] _Numbers = new int[6];
-        public int _StrongNumber = 0;
+        public int[] _Numbers = new int[17];
     }
 
-    public class LotteryWinningResult: LotteryTable
+    public class Lottery777WinningResult: Lottery777Table
     {
         public DateTime _LotteryDate { get; set; }
         public string _LotteryRaffleID { get; set; }
         public int _HitCount { get; set; }
+        public int[] _Ranks { get; set; }
     }
 
-    public class ShortLotteryTable
+    public class ShortLottery777Table
     {
-        public int[] _Numbers = new int[6];
+        public int[] _Numbers = new int[17];
     }
 
-    public class PartialLotteryTable
+    public class PartialLottery777Table
     {
-        public int[] Numbers = new int[6];
+        public int[] Numbers = new int[17];
         public int Commonness;
     }
 
@@ -37,15 +37,15 @@ namespace LotteryEngine
         public int Rank = 1;
     }
 
-    public class ChosenLotteryTable
+    public class ChosenLottery777Table
     {
-        public int[] Numbers = new int[6];
-        public int[] Ranks = new int[5];
-        public int Leading;
-        public List<int> NumbersHit = new List<int>();
-        public int HitCount;
-        public int[] HitDispersion;
-        public int StrongNumber;
+        public int[] Numbers = new int[7];
+        //public int[] Ranks = new int[16];
+        //public int Leading;        
+        public int[] HitCount;
+        public int TotalHitcount;
+        //public int[] HitDispersion;
+        //public int StrongNumber;
     }
 
     class DistinctItemComparer : IEqualityComparer<int[]>
@@ -85,10 +85,10 @@ namespace LotteryEngine
         }
     }
 
-    class DistinctChosenLotteryTableComparer : IEqualityComparer<ChosenLotteryTable>
+    class DistinctChosenLottery777TableComparer : IEqualityComparer<ChosenLottery777Table>
     {
 
-        public bool Equals(ChosenLotteryTable x, ChosenLotteryTable y)
+        public bool Equals(ChosenLottery777Table x, ChosenLottery777Table y)
         {
             bool isEqual = true;
 
@@ -112,7 +112,7 @@ namespace LotteryEngine
             return isEqual;
         }
 
-        public int GetHashCode(ChosenLotteryTable obj)
+        public int GetHashCode(ChosenLottery777Table obj)
         {
             return base.GetHashCode();
             //return obj.Id.GetHashCode() ^
@@ -122,7 +122,7 @@ namespace LotteryEngine
         }
     }
 
-    class DistinctRanksComparer : IEqualityComparer<int[]>
+    class DistinctRanks777Comparer : IEqualityComparer<int[]>
     {
 
         public bool Equals(int[] x, int[] y)

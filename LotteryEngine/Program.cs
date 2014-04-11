@@ -32,7 +32,7 @@ namespace LotteryEngine
             //wantedDispersion.Add(9, 2);
 
             //lotteryEngine.GetAllLotteryTablesCombinations3(generatedTablesfilename, true, 168, wantedDispersion, true, winningTablesFilename, true, allChosenTablesFilename, chosenTablesFilename);
-            lotteryEngine.GetAllLotteryTablesCombinations3(generatedTablesfilename, false, 5, wantedDispersion, false, winningTablesFilename, false, allChosenTablesFilename, chosenTablesFilename);
+            lotteryEngine.GetAllLotteryTablesCombinations4(generatedTablesfilename, true, 5, wantedDispersion, true, winningTablesFilename, true, allChosenTablesFilename, chosenTablesFilename);
             //List<ChosenLotteryTable> records = lotteryEngine.ReadChosenCombinations("ChosenTables_15.03.2014.16.29.35.3881.csv");
             //double profit = lotteryEngine.CalcWinningsForTables(records, lotteryEngine.WinningResults.Take(550).ToList(), new int[]{0, 0, 0, 10, 33, 46, 117, 497, 3846, 500000, 0}, 2.9, ref wins, ref losses);
             //int[] results = lotteryEngine.CheckHitCountForChosenCombinations(new int[] { 1, 3, 6, 9, 34, 37 }, 3, records);

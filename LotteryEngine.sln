@@ -5,6 +5,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LotteryEngine", "LotteryEng
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LotteryTablePrinter", "LotteryTablePrinter\LotteryTablePrinter.csproj", "{53EDA6FC-0F71-450F-95E2-0A2B689A8462}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lottery777", "Lottery777\Lottery777.csproj", "{38209261-D7F1-405F-901A-194B7E0A72B2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,6 +21,10 @@ Global
 		{53EDA6FC-0F71-450F-95E2-0A2B689A8462}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{53EDA6FC-0F71-450F-95E2-0A2B689A8462}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{53EDA6FC-0F71-450F-95E2-0A2B689A8462}.Release|Any CPU.Build.0 = Release|Any CPU
+		{38209261-D7F1-405F-901A-194B7E0A72B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38209261-D7F1-405F-901A-194B7E0A72B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38209261-D7F1-405F-901A-194B7E0A72B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38209261-D7F1-405F-901A-194B7E0A72B2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

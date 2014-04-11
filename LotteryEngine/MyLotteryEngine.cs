@@ -1330,31 +1330,6 @@ namespace LotteryEngine
             }
         }
 
-        private ChosenLotteryTable BuildTable(int iPickedStartingNumber)
-        {
-            ChosenLotteryTable table = new ChosenLotteryTable();
-
-            //Choosing the most common number for the picked number
-            int second = _NumbersCommoness[iPickedStartingNumber - 1][0];
-
-            //Choose 2 numbers - next common for picked and most common for most common
-            int third = _NumbersCommoness[iPickedStartingNumber - 1][1];
-            int forth = _NumbersCommoness[second - 1][0];
-
-            //Choose 2 numbers - most common of third and forth
-            int fifth = _NumbersCommoness[third - 1][0];
-            int sixth = _NumbersCommoness[forth - 1][0];
-
-            table.Numbers[0] = iPickedStartingNumber;
-            table.Numbers[1] = second;
-            table.Numbers[2] = third;
-            table.Numbers[3] = forth;
-            table.Numbers[4] = fifth;
-            table.Numbers[5] = sixth;
-
-            return table;
-        }
-
         public void GetAllLotteryTablesCombinations4(string iGeneratedTablesFilename, bool iWriteGeneratedTables, int iWantedCombinations, Dictionary<int, int> iWantedDispersion, bool iWriteWinningTablesDataToFile, string iWinningTablesFilename, bool iWriteAllChosenTablesDataToFile, string iAllChosenTablesFilename, string iChosenTablesFilename)
         {
             List<ChosenLotteryTable> combinations = new List<ChosenLotteryTable>();
@@ -1464,31 +1439,105 @@ namespace LotteryEngine
                 }
             }
 
-            //Choose from chosen combinations according to wanted dispersion
-            List<ChosenLotteryTable> chosenForSending = new List<ChosenLotteryTable>();
-            foreach (KeyValuePair<int, int> pair in iWantedDispersion)
+            List<ChosenLotteryTable> chosenForSending = null;
+            List<ChosenLotteryTable> profittables = new System.Collections.Generic.List<ChosenLotteryTable>();
+            double wins = 0, losses = 0, profit = 0;
+            MultiMap<ResultDispersion> winningResultsDispersion = GetWinningResultsDispersionByTenthPattern(winningResults.Count);
+            List<KeyValuePair<string, int>> dispersionStats = new List<System.Collections.Generic.KeyValuePair<string, int>>();
+
+            foreach (string dispersion in winningResultsDispersion.Keys)
             {
-                chosenForSending.AddRange(ChooseCombinationsForSpecificNumber2(pair.Key, (int)((double)pair.Value / 100 * iWantedCombinations), winningCombinations.Where(x => x.Leading == pair.Key).ToList(), chosenCombinations.Where(x => x.Leading == pair.Key).ToList()));
+                dispersionStats.Add(new KeyValuePair<string, int>(dispersion, winningResultsDispersion[dispersion].Count()));
+            }
+            dispersionStats = dispersionStats.OrderBy(x => x.Value).Reverse().Take(40).ToList();
+
+            List<string> patterns = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < dispersionStats.Count; i++)
+            {
+                patterns.Add(dispersionStats[i].Key);
             }
 
+            foreach (ChosenLotteryTable chosenTable in chosenCombinations)
+            {
+                List<ChosenLotteryTable> tempList = new List<ChosenLotteryTable>();                
+
+                double winnings = CalcWinningsForTable(chosenTable, _LotteryHistoricResults.Take(winningResults.Count).ToList(), new int[] { 0, 0, 0, 10, 33, 46, 117, 497, 3846, 500000, 4000000 }, 2.9, ref wins, ref losses);
+
+                if (chosenTable.HitCount >= 30 &&// chosenTable.HitCount <= 25 &&
+                     winnings >= 350.0 && winnings <= 800.0 && chosenTable.HitDispersion[6] < 2 && chosenTable.HitDispersion[7] < 2 && chosenTable.HitDispersion[8] < 2/*&& winnings < 500*/ &&
+                    patterns.Contains(GetWinningResultsDispersionByTenthPattern(chosenTable)))
+                {
+                    profittables.Add(chosenTable);
+                }
+
+                //if (chosenTable.HitCount < 16 &&// chosenTable.HitCount <= 25 &&
+                //     winnings >= 160.0 && winnings <= 350.0 && chosenTable.HitDispersion[6] < 2 && chosenTable.HitDispersion[7] < 2 && chosenTable.HitDispersion[8] < 2/*&& winnings < 500*/ &&
+                //    patterns.Contains(GetWinningResultsDispersionByTenthPattern(chosenTable)))
+                //{
+                //    profittables.Add(chosenTable);
+                //}
+
+                if (chosenTable.HitCount >= 16 && chosenTable.HitCount < 30 &&
+                     winnings >= 200.0 && winnings <= 480 &&
+                    patterns.Contains(GetWinningResultsDispersionByTenthPattern(chosenTable)))
+                {
+                    profittables.Add(chosenTable);
+                }
+            }
+
+            profittables = profittables.Distinct(new DistinctChosenLotteryTableComparer()).ToList();
+
             //Write ChosenForSending to file
-            foreach (ChosenLotteryTable result in chosenForSending)
+            foreach (ChosenLotteryTable result in profittables)
             {
                 using (StreamWriter writer = new StreamWriter(iChosenTablesFilename, true))
                 {
                     string strTable = string.Format("{0};{1};{2};{3};{4};{5}", result.Numbers[0], result.Numbers[1],
                                                                             result.Numbers[2], result.Numbers[3],
                                                                             result.Numbers[4], result.Numbers[5]);
-                    string line = string.Format("{0}, ,{1}, ,{2}, ,{3},{4},{5},{6},{7}, ,{8}", result.Leading, strTable, result.StrongNumber, result.Ranks[0],
+                    string line = string.Format("{0}, ,{1}, ,{2}, ,{3},{4},{5},{6},{7}, ,{8}, ,{9},{10},{11},{12},{13},{14},{15},{16}", result.Leading, strTable, result.StrongNumber, result.Ranks[0],
                                                                                                          result.Ranks[1],
                                                                                                          result.Ranks[2],
                                                                                                          result.Ranks[3],
                                                                                                          result.Ranks[4],
-                                                                                                         result.HitCount);
+                                                                                                         result.HitCount,
+                                                                                                         result.HitDispersion[3],
+                                                                                                         result.HitDispersion[4],
+                                                                                                         result.HitDispersion[5],
+                                                                                                         result.HitDispersion[6],
+                                                                                                         result.HitDispersion[7],
+                                                                                                         result.HitDispersion[8],
+                                                                                                         result.HitDispersion[9],
+                                                                                                         result.HitDispersion[10]);
 
                     writer.WriteLine(line);
                 }
             }
+        }
+
+        private ChosenLotteryTable BuildTable(int iPickedStartingNumber)
+        {
+            ChosenLotteryTable table = new ChosenLotteryTable();
+
+            //Choosing the most common number for the picked number
+            int second = _NumbersCommoness[iPickedStartingNumber - 1][0];
+
+            //Choose 2 numbers - next common for picked and most common for most common
+            int third = _NumbersCommoness[iPickedStartingNumber - 1][1];
+            int forth = _NumbersCommoness[second - 1][0];
+
+            //Choose 2 numbers - most common of third and forth
+            int fifth = _NumbersCommoness[third - 1][0];
+            int sixth = _NumbersCommoness[forth - 1][0];
+
+            table.Numbers[0] = iPickedStartingNumber;
+            table.Numbers[1] = second;
+            table.Numbers[2] = third;
+            table.Numbers[3] = forth;
+            table.Numbers[4] = fifth;
+            table.Numbers[5] = sixth;
+
+            return table;
         }
 
         public void GetLotteryTablesCombinationsAimFor3Match(string iFilename, int iWantedCombinations, Dictionary<int, int> iWantedDispersion, bool iWriteWinningTablesDataToFile, string iChosenTablesFilename)
@@ -1852,6 +1901,60 @@ namespace LotteryEngine
             return hitCount;
         }
 
+        public int[] CheckHitCountForChosenCombination(ChosenLotteryTable iChosenCombination, List<LotteryWinningResult> iWinningReults)
+        {
+            int[] hitCount = new int[11]; //0 1 2 3 4  5 6  7 8  9 10
+            //      3 3+ 4 4+ 5 5+ 6 6+
+
+            foreach (LotteryWinningResult winningResult in iWinningReults)
+            {
+                int hitCounter = Compare6NumbersTables(winningResult._Numbers, iChosenCombination.Numbers);
+
+                if (hitCounter > 2)
+                {
+                    if (winningResult._StrongNumber == iChosenCombination.StrongNumber)
+                    {
+                        switch (hitCounter)
+                        {
+                            case 3:
+                                hitCount[hitCounter + 1]++;
+                                break;
+                            case 4:
+                                hitCount[hitCounter + 2]++;
+                                break;
+                            case 5:
+                                hitCount[hitCounter + 3]++;
+                                break;
+                            case 6:
+                                hitCount[hitCounter + 4]++;
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        switch (hitCounter)
+                        {
+                            case 3:
+                                hitCount[hitCounter]++;
+                                break;
+                            case 4:
+                                hitCount[hitCounter + 1]++;
+                                break;
+                            case 5:
+                                hitCount[hitCounter + 2]++;
+                                break;
+                            case 6:
+                                hitCount[hitCounter + 3]++;
+                                break;
+                        }
+                    }
+
+                }
+            }
+
+            return hitCount;
+        }
+
         public int[] CheckHitCountForChosenCombination(List<ChosenLotteryTable> iChosenCombinations, LotteryWinningResult iWinningResult)
         {
             int[] hitCount = new int[11]; //0 1 2 3 4  5 6  7 8  9 10
@@ -1936,6 +2039,30 @@ namespace LotteryEngine
                 {
                     oLosses++;
                 }
+            }
+
+            return Profit;// -Invested;
+        }
+
+        public double CalcWinningsForTable(ChosenLotteryTable iChosenTable, List<LotteryWinningResult> iWinningResults, int[] iPrizes, double iTableCost, ref double oWins, ref double oLosses)
+        {
+            double Profit = 0;
+            //double Invested = iTableCost * iChosenTables.Count * iWinningResults.Count;
+
+            
+            int[] hitCounts = CheckHitCountForChosenCombination(iChosenTable, iWinningResults);
+            iChosenTable.HitDispersion = hitCounts;
+
+            double currProfit = hitCounts[3] * iPrizes[3] + hitCounts[4] * iPrizes[4] + hitCounts[5] * iPrizes[5] + hitCounts[6] * iPrizes[6] + hitCounts[7] * iPrizes[7] + hitCounts[8] * iPrizes[8] + hitCounts[9] * iPrizes[9] + hitCounts[10] * iPrizes[10] - ((double)iTableCost);
+            Profit += currProfit;// hitCounts[3] * iPrizes[3] + hitCounts[4] * iPrizes[4] + hitCounts[5] * iPrizes[5] + hitCounts[6] * iPrizes[6] + hitCounts[7] * iPrizes[7] + hitCounts[8] * iPrizes[8] + hitCounts[9] * iPrizes[9] + hitCounts[10] * iPrizes[10];
+
+            if (currProfit > 0)
+            {
+                oWins++;
+            }
+            else
+            {
+                oLosses++;
             }
 
             return Profit;// -Invested;
@@ -2937,7 +3064,7 @@ namespace LotteryEngine
         /// 30 31 32 33 34 35 36 37
         /// </summary>
         /// <param name="iNumberRecordsToConsider"></param>
-        public void GetDispersionByTenthPattern(int iNumberRecordsToConsider)
+        public void GetWinningResultsDispersionByTenthPatternToFile(int iNumberRecordsToConsider)
         {
             List<ResultDispersion> dispersion = new List<ResultDispersion>();
             int lessThan10 = 0;
@@ -3010,7 +3137,113 @@ namespace LotteryEngine
 
         }
 
-        public void GetDispersionByTenthPattern(List<int[]> iCombinations, int iNumberRecordsToConsider, string iFilename)
+        public string GetWinningResultsDispersionByTenthPattern(ChosenLotteryTable iTable)
+        {
+            int lessThan10 = 0;
+            int lessThan20 = 0;
+            int lessThan30 = 0;
+            int lessThan38 = 0;
+            double totalPercentage = 0;
+            ResultDispersion dispersion;
+
+            foreach (int number in iTable.Numbers)
+            {
+                if (number < 10)
+                {
+                    lessThan10++;
+                }
+                else if (number >= 10 && number < 20)
+                {
+                    lessThan20++;
+                }
+                else if (number >= 20 && number < 30)
+                {
+                    lessThan30++;
+                }
+                else if (number >= 30 && number < 38)
+                {
+                    lessThan38++;
+                }
+            }
+
+            //dispersion = new ResultDispersion()
+            //{
+            //    LessThan10 = lessThan10,
+            //    LessThan20 = lessThan20,
+            //    LessThan30 = lessThan30,
+            //    LessThan38 = lessThan38,
+            //    Numbers = iTable.Numbers
+            //};
+
+            string pattern = lessThan10.ToString() + lessThan20.ToString() + lessThan30.ToString() + lessThan38.ToString();
+
+            return pattern;
+        }
+
+        public MultiMap<ResultDispersion> GetWinningResultsDispersionByTenthPattern(int iNumberRecordsToConsider)
+        {
+            List<ResultDispersion> dispersion = new List<ResultDispersion>();
+            int lessThan10 = 0;
+            int lessThan20 = 0;
+            int lessThan30 = 0;
+            int lessThan38 = 0;
+            double totalPercentage = 0;
+            int numberOfRecordsToConsider = iNumberRecordsToConsider;
+
+            if (numberOfRecordsToConsider > _LotteryHistoricResults.Count)
+            {
+                numberOfRecordsToConsider = _LotteryHistoricResults.Count;
+            }
+
+            for (int i = 0; i < numberOfRecordsToConsider; i++)
+            {
+                foreach (int number in _LotteryHistoricResults[i]._Numbers)
+                {
+                    if (number < 10)
+                    {
+                        lessThan10++;
+                    }
+                    else if (number >= 10 && number < 20)
+                    {
+                        lessThan20++;
+                    }
+                    else if (number >= 20 && number < 30)
+                    {
+                        lessThan30++;
+                    }
+                    else if (number >= 30 && number < 38)
+                    {
+                        lessThan38++;
+                    }
+                }
+
+                dispersion.Add(new ResultDispersion()
+                {
+                    LessThan10 = lessThan10,
+                    LessThan20 = lessThan20,
+                    LessThan30 = lessThan30,
+                    LessThan38 = lessThan38,
+                    Numbers = _LotteryHistoricResults[i]._Numbers
+                });
+
+                lessThan10 = 0;
+                lessThan20 = 0;
+                lessThan30 = 0;
+                lessThan38 = 0;
+            }
+
+            //categorize all different dispersions into groups
+            MultiMap<ResultDispersion> mp = new MultiMap<ResultDispersion>();
+            foreach (ResultDispersion item in dispersion)
+            {
+                string pattern = item.LessThan10.ToString() + item.LessThan20.ToString() + item.LessThan30.ToString() + item.LessThan38.ToString();
+                mp.Add(pattern, item);
+            }
+
+            return mp;
+        }
+
+        public void GetWinningResultsDispersionByTenthPattern(List<int[]> iCombinations, int iNumberRecordsToConsider, string iFilename)
         {
             List<ResultDispersion> dispersion = new List<ResultDispersion>();
             int lessThan10 = 0;
