@@ -15,7 +15,7 @@ namespace Lottery777
             Stopwatch sw = new Stopwatch();
 
             sw.Start();
-            MyLottery777Engine lotteryEngine = new MyLottery777Engine("777.csv", false  );
+            MyLottery777Engine lotteryEngine = new MyLottery777Engine("777.csv", false);
             sw.Stop();
 
             Console.WriteLine(string.Format("Time to create Lottery777Engine: {0} seconds", sw.ElapsedMilliseconds / 1000));
@@ -23,8 +23,8 @@ namespace Lottery777
             string generatedTablesfilename = string.Format("GeneratedTables_{0}.csv", DateTime.Now.ToString("dd.MM.yyyy.HH.mm.ss.ffff"));
             string winningTablesFilename = string.Format("WinningTables_{0}.csv", DateTime.Now.ToString("dd.MM.yyyy.HH.mm.ss.ffff"));
             string chosenTablesFilename = string.Format("ChosenTables_{0}.csv", DateTime.Now.ToString("dd.MM.yyyy.HH.mm.ss.ffff"));
+            string chosenTablesFilename100 = string.Format("ChosenTables100_{0}.csv", DateTime.Now.ToString("dd.MM.yyyy.HH.mm.ss.ffff"));
             string allChosenTablesFilename = string.Format("AllChosenTables_{0}.csv", DateTime.Now.ToString("dd.MM.yyyy.HH.mm.ss.ffff"));
-
             //int[] counter = lotteryEngine.GetCountHotNumbersInWinningResults();
             //int counterTotal = 0;
 
@@ -32,10 +32,14 @@ namespace Lottery777
             //{
             //    counterTotal += number;
             //}
+            List<ChosenLottery777Table> chosen = new List<ChosenLottery777Table>();
 
-            List<ChosenLottery777Table> list = lotteryEngine.GenerateLottery777Combinations3(new List<int>(new int[] { 44, 28, 36 }), true, generatedTablesfilename);
-            
-        
+            sw.Reset();
+            sw.Start();
+            lotteryEngine.GenerateLottery777Tables(6756, chosenTablesFilename100, ref chosen);
+            sw.Stop();
+
+            Console.WriteLine(string.Format("Time taken to generate lottery 777 numbers: {0} hours", sw.Elapsed));
         }
     }
 }

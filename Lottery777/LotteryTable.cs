@@ -42,10 +42,24 @@ namespace LotteryEngine
         public int[] Numbers = new int[7];
         //public int[] Ranks = new int[16];
         //public int Leading;        
-        public int[] HitCount;
-        public int TotalHitcount;
+        public int[] HitCountArray;
+        public int HitCount;
+        public List<int> WinningRafflesTracking;
         //public int[] HitDispersion;
         //public int StrongNumber;
+    }
+
+    public class ChosenLottery777MethodicalTable
+    {
+        public int[] Numbers = new int[9];
+        //public int[] Ranks = new int[16];
+        //public int Leading;        
+        public int[] HitCountArray;
+        //public int TotalHitcount;
+        //public int[] HitDispersion;
+        //public int StrongNumber;
+
+        public int HitCount;
     }
 
     class DistinctItemComparer : IEqualityComparer<int[]>
@@ -95,13 +109,10 @@ namespace LotteryEngine
             //Console.WriteLine(string.Format("{0} - {1}", x.Length, y.Length));
             if (x.Numbers.Length == y.Numbers.Length)
             {
-                for (int i = 0; i < x.Numbers.Length; i++)
+                int count = x.Numbers.Intersect(y.Numbers).ToList().Count;
+                if (count < 3)
                 {
-                    if (x.Numbers[i] != y.Numbers[i])
-                    {
-                        isEqual = false;
-                        break;
-                    }
+                    isEqual = false;
                 }
             }
             else
@@ -113,6 +124,57 @@ namespace LotteryEngine
         }
 
         public int GetHashCode(ChosenLottery777Table obj)
+        {
+            return base.GetHashCode();
+            //return obj.Id.GetHashCode() ^
+            //    obj.Name.GetHashCode() ^
+            //    obj.Code.GetHashCode() ^
+            //    obj.Price.GetHashCode();
+        }
+    }
+
+    class DistinctChosenLottery777MethodicalTableComparer : IEqualityComparer<ChosenLottery777MethodicalTable>
+    {
+
+        public bool Equals(ChosenLottery777MethodicalTable x, ChosenLottery777MethodicalTable y)
+        {
+            bool isEqual = true;
+            
+
+            if (x.Numbers.Length == y.Numbers.Length)
+            {
+                int count = x.Numbers.Intersect(y.Numbers).ToList().Count;
+                if (count < 6)
+                {
+                    isEqual = false;
+                }
+            }
+            else
+            {
+                isEqual = false;
+            }
+
+            //Console.WriteLine(string.Format("{0} - {1}", x.Length, y.Length));
+            //if (x.Numbers.Length == y.Numbers.Length)
+            //{
+            //    for (int i = 0; i < x.Numbers.Length; i++)
+            //    {
+            //        if (x.Numbers[i] != y.Numbers[i])
+            //        {
+            //            isEqual = false;
+            //            break;
+            //        }
+            //    }
+            //}
+            //else
+            //{
+            //    isEqual = false;
+            //}
+
+            return isEqual;
+        }
+
+        public int GetHashCode(ChosenLottery777MethodicalTable obj)
         {
             return base.GetHashCode();
             //return obj.Id.GetHashCode() ^
