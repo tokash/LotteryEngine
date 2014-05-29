@@ -46,6 +46,9 @@ namespace LotteryEngine
         //List<Dictionary<int, int>> _HotNumbersPerNumber = null;
         List<List<KeyValuePair<int, int>>> _NumbersThatMutuallyAppearWithEachOther = null;
 
+        List<ChosenLottery777Table> _ChosenFromWinningResults = new List<ChosenLottery777Table>();
+        public List<ChosenLottery777Table> ChosenResults { get { return _ChosenFromWinningResults; } }
+
         int[] set = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70 };
 
         //PseudoPowerset _PowerSet = new PseudoPowerset();
@@ -1651,7 +1654,7 @@ namespace LotteryEngine
                     List<int> winningRaffleTracking = new System.Collections.Generic.List<int>();
                     int hitCount = GetHitCountForLastNResults(item.Numbers, 5, iNumResultsToConsider, ref hitCountArray, ref winningRaffleTracking);
 
-                    if (hitCount >= 85)// && !iChosen.Contains(item, new DistinctChosenLottery777TableComparer()))
+                    if (hitCount >= 6)// && !iChosen.Contains(item, new DistinctChosenLottery777TableComparer()))
                     {
                         item.HitCount = hitCount;
                         item.HitCountArray = hitCountArray;
@@ -1723,7 +1726,7 @@ namespace LotteryEngine
             {
                 using (StreamWriter writer = new StreamWriter(iFilename, true))
                 {
-                    string line = string.Format("{0},{1},{2},{3},{4},{5},{6},,{7},{8},{9},{10},{11}",
+                    string line = string.Format("{0},{1},{2},{3},{4},{5},{6},,{7},,{8},{9},{10},{11},{12}",
                                                 combination.Numbers[0],
                                                 combination.Numbers[1],
                                                 combination.Numbers[2],
@@ -1731,6 +1734,7 @@ namespace LotteryEngine
                                                 combination.Numbers[4],
                                                 combination.Numbers[5],
                                                 combination.Numbers[6],
+                                                combination.HitCount,
                                                 combination.HitCountArray[3],
                                                 combination.HitCountArray[4],
                                                 combination.HitCountArray[5],
@@ -1748,5 +1752,142 @@ namespace LotteryEngine
                 }
             }
         }
+
+        public int CalculateWinnings(int[] iWinningResult, int iRaffleNo, List<int[]> iChosenTables, ref int[] oHitCount)
+        {
+            int winnings = 0;
+
+            foreach (int[] chosenTable in iChosenTables)
+            {
+                int hitCount = iWinningResult.Intersect(chosenTable).Count();
+
+                oHitCount[hitCount]++;
+
+                switch (hitCount)
+                {
+                    case 0:
+                        winnings += 5;
+                        break;
+                    case 1:
+                        break;
+                    case 2:
+                        break;
+                    case 3:
+                        winnings += 5;
+                        break;
+                    case 4:
+                        winnings += 20;
+                        break;
+                    case 5:
+                        winnings += 50;
+                        break;
+                    case 6:
+                        winnings += 500;
+                        Console.WriteLine(string.Format("Won 500 NIS with the following numbers: {0},{1},{2},{3},{4},{5},{6}, Raffle No.{7}",
+                                                        chosenTable[0],
+                                                        chosenTable[1],
+                                                        chosenTable[2],
+                                                        chosenTable[3],
+                                                        chosenTable[4],
+                                                        chosenTable[5],
+                                                        chosenTable[6],
+                                                        iRaffleNo)
+                                                        );
+
+                        using (StreamWriter writer = new StreamWriter("67hits.csv", true))
+                        {
+                            string line = string.Format("{0},{1},{2},{3},{4},{5},{6},,{7}",
+                                                        chosenTable[0],
+                                                        chosenTable[1],
+                                                        chosenTable[2],
+                                                        chosenTable[3],
+                                                        chosenTable[4],
+                                                        chosenTable[5],
+                                                        chosenTable[6],
+                                                        iRaffleNo
+                                                        );
+                            writer.WriteLine(line);
+                        }
+
+                        ChosenLottery777Table currChosenTable = new ChosenLottery777Table();
+                        currChosenTable.Numbers = chosenTable;
+
+                        _ChosenFromWinningResults.Add(currChosenTable);
+                        _ChosenFromWinningResults = _ChosenFromWinningResults.Distinct(new DistinctFullChosenLottery777TableComparer()).ToList();
+                        break;
+                    case 7:
+                        winnings += 70000;
+                        Console.WriteLine(string.Format("Won the big prize with the following numbers: {0},{1},{2},{3},{4},{5},{6}, Raffle No.{7}",
+                                                        chosenTable[0],
+                                                        chosenTable[1],
+                                                        chosenTable[2],
+                                                        chosenTable[3],
+                                                        chosenTable[4],
+                                                        chosenTable[5],
+                                                        chosenTable[6],
+                                                        iRaffleNo)
+                                                        );
+
+                        currChosenTable = new ChosenLottery777Table();
+                        currChosenTable.Numbers = chosenTable;
+
+                        _ChosenFromWinningResults.Add(currChosenTable);
+                        _ChosenFromWinningResults = _ChosenFromWinningResults.Distinct(new DistinctFullChosenLottery777TableComparer()).ToList();
+
+                        using (StreamWriter writer = new StreamWriter("67hits.csv", true))
+                        {
+                            string line = string.Format("{0},{1},{2},{3},{4},{5},{6},,{7}",
+                                                        chosenTable[0],
+                                                        chosenTable[1],
+                                                        chosenTable[2],
+                                                        chosenTable[3],
+                                                        chosenTable[4],
+                                                        chosenTable[5],
+                                                        chosenTable[6],
+                                                        iRaffleNo
+                                                        );
+                            writer.WriteLine(line);
+                        }
+                        
+                        break;
+                }
+            }
+
+            return winnings;
+        }
+
+        public List<int[]> ReadChosenTablesFromFile(string iFilename)
+        {
+            List<int[]> listA = new List<int[]>();
+
+            using (var reader = new StreamReader(File.OpenRead(iFilename)))
+            {
+                while (!reader.EndOfStream)
+                {
+                    var line = reader.ReadLine();
+                    var values = line.Split(',');
+
+                    if (values[0] != string.Empty)
+                    {
+                        int num1 = int.Parse(values[0]);
+                        int num2 = int.Parse(values[1]);
+                        int num3 = int.Parse(values[2]);
+                        int num4 = int.Parse(values[3]);
+                        int num5 = int.Parse(values[4]);
+                        int num6 = int.Parse(values[5]);
+                        int num7 = int.Parse(values[6]);
+
+                        int[] table = new int[] { num1, num2, num3, num4, num5, num6, num7 };
+
+                        listA.Add(table);
+                    }
+                }
+            }           
+
+            return listA;
+        }
+
+        //The order of discovery is meaningless, only ordered results can be used
+        //Need to establish if a certain result has won in the last 50 raffles
     }
 }

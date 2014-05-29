@@ -133,6 +133,40 @@ namespace LotteryEngine
         }
     }
 
+    class DistinctFullChosenLottery777TableComparer : IEqualityComparer<ChosenLottery777Table>
+    {
+
+        public bool Equals(ChosenLottery777Table x, ChosenLottery777Table y)
+        {
+            bool isEqual = true;
+
+            //Console.WriteLine(string.Format("{0} - {1}", x.Length, y.Length));
+            if (x.Numbers.Length == y.Numbers.Length)
+            {
+                int count = x.Numbers.Intersect(y.Numbers).ToList().Count;
+                if (count < x.Numbers.Length)
+                {
+                    isEqual = false;
+                }
+            }
+            else
+            {
+                isEqual = false;
+            }
+
+            return isEqual;
+        }
+
+        public int GetHashCode(ChosenLottery777Table obj)
+        {
+            return base.GetHashCode();
+            //return obj.Id.GetHashCode() ^
+            //    obj.Name.GetHashCode() ^
+            //    obj.Code.GetHashCode() ^
+            //    obj.Price.GetHashCode();
+        }
+    }
+
     class DistinctChosenLottery777MethodicalTableComparer : IEqualityComparer<ChosenLottery777MethodicalTable>
     {
 
